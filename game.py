@@ -1,12 +1,15 @@
 from array import array
+import asyncio
 import math
 import random
-import subprocess
 import sys
 
 try:
     import pygame
 except ImportError:
+    if sys.platform == "emscripten":
+        raise
+    import subprocess
     print("Pygame not found. Automatically running 'pip install pygame'...")
     try:
         subprocess.check_call([sys.executable, "-m", "pip", "install", "pygame"])
@@ -1158,7 +1161,7 @@ def handle_settings_click(state, position, layout):
         set_audio_slider(state.settings_draft, "music_volume", layout["music_slider"], position[0])
 
 
-def main():
+async def main():
     pygame.mixer.pre_init(frequency=MUSIC_SAMPLE_RATE, size=-16, channels=1, buffer=512)
     pygame.init()
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
@@ -1196,7 +1199,7 @@ def main():
     running = True
     countdown_mark = 0
     while running:
-        delta_time = min(clock.tick(FPS) / 1000, 0.05)
+        delta_time = min(clock.tick(0) / 1000, 0.05)
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 if not state.exit_confirmation:
@@ -1322,11 +1325,16 @@ def main():
             pygame.time.get_ticks(),
         )
         pygame.display.flip()
+        if sys.platform == "emscripten":
+            await asyncio.sleep(0)
+        else:
+            await asyncio.sleep(1 / FPS)
 
     if audio_manager is not None and audio_manager.music_channel is not None:
         audio_manager.music_channel.stop()
-    pygame.quit()
+    if sys.platform != "emscripten":
+        pygame.quit()
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
