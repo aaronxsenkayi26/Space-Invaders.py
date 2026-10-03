@@ -26,6 +26,8 @@
 
 > After game over, press R or click PLAY AGAIN to restart.
 
+> Closing the game window opens an exit confirmation. Choose NO to return to the game or YES to exit; exiting loses this session's achievements and awards.
+
 # Requirements (To run on the desktop version on file)
 
 > Python Pygame ( If your PC doesn't have it, running the game will automatically install pygame for you.)

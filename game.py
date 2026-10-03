@@ -64,11 +64,11 @@ ALIEN_FRAMES = (
 
 CATALOG_TABS = ("Jets", "Blasters", "Fire Rate", "Bullet Amount", "Achievements")
 CATALOG_TAB_LABELS = {
-    "Jets": "🛦 JETS",
-    "Blasters": "🔫 BLASTERS",
-    "Fire Rate": "🔫x99 FIRE RATE",
-    "Bullet Amount": "⌖ x99 BULLETS",
-    "Achievements": "🏆 ACHIEVEMENTS",
+    "Jets": "JETS",
+    "Blasters": "BLASTERS",
+    "Fire Rate": "FIRE RATE",
+    "Bullet Amount": "BULLET AMOUNT",
+    "Achievements": "ACHIEVEMENTS",
 }
 UPGRADE_CATALOGS = {
     "Jets": (
@@ -76,32 +76,44 @@ UPGRADE_CATALOGS = {
         {"id": "falcon", "name": "Falcon", "score": 500, "style": 1, "color": CYAN},
         {"id": "viper", "name": "Viper", "score": 1500, "style": 2, "color": ORANGE},
         {"id": "comet", "name": "Comet", "score": 3000, "style": 3, "color": (255, 115, 220)},
+        {"id": "starfire", "name": "Starfire", "score": 6000, "style": 4, "color": (100, 225, 200)},
+        {"id": "phantom", "name": "Phantom", "score": 12000, "style": 5, "color": (205, 165, 255)},
     ),
     "Blasters": (
         {"id": "pulse", "name": "Pulse", "score": 0, "color": CYAN},
         {"id": "ember", "name": "Ember", "score": 400, "color": ORANGE},
         {"id": "ion", "name": "Ion", "score": 1000, "color": (150, 135, 255)},
         {"id": "prism", "name": "Prism", "score": 2200, "color": (255, 105, 220)},
+        {"id": "nova", "name": "Nova", "score": 6000, "color": (105, 255, 205)},
+        {"id": "quasar", "name": "Quasar", "score": 12000, "color": (255, 235, 130)},
     ),
     "Fire Rate": (
         {"id": "standard", "name": "Standard", "score": 0, "cooldown": 0.18},
         {"id": "rapid", "name": "Rapid", "score": 750, "cooldown": 0.14},
         {"id": "turbo", "name": "Turbo", "score": 1800, "cooldown": 0.10},
         {"id": "overdrive", "name": "Overdrive", "score": 3500, "cooldown": 0.07},
+        {"id": "hyperion", "name": "Hyperion", "score": 6000, "cooldown": 0.055},
+        {"id": "singularity", "name": "Singularity", "score": 12000, "cooldown": 0.04},
     ),
     "Bullet Amount": (
         {"id": "single", "name": "Single Shot", "score": 0, "amount": 1},
         {"id": "twin", "name": "Twin Shot", "score": 1200, "amount": 2},
         {"id": "triple", "name": "Triple Shot", "score": 2500, "amount": 3},
         {"id": "fan", "name": "Fan Volley", "score": 4000, "amount": 5},
+        {"id": "thunder", "name": "Thunder Volley", "score": 6000, "amount": 7},
+        {"id": "starfall", "name": "Starfall Volley", "score": 12000, "amount": 9},
     ),
 }
 ACHIEVEMENTS = (
-    {"name": "First Contact", "score": 250},
-    {"name": "Squadron Pilot", "score": 500},
-    {"name": "The Wide Receiver", "score": 1500},
-    {"name": "Ace of the Fleet", "score": 3000},
-    {"name": "Alien Nemesis", "score": 5000},
+    {"name": "First Contact", "score": 250, "reward": "+1 extra life", "extra_lives": 1},
+    {"name": "Squadron Pilot", "score": 500, "reward": "Repair all shields", "repair_shields": True},
+    {"name": "The Wide Receiver", "score": 1500, "reward": "+1 extra life", "extra_lives": 1},
+    {"name": "Ace of the Fleet", "score": 3000, "reward": "+1 life and shield repair", "extra_lives": 1, "repair_shields": True},
+    {"name": "Alien Nemesis", "score": 5000, "reward": "+2 extra lives", "extra_lives": 2},
+    {"name": "Shield Guardian", "score": 6500, "reward": "Repair all shields", "repair_shields": True},
+    {"name": "Vanguard Ace", "score": 9000, "reward": "+2 extra lives", "extra_lives": 2},
+    {"name": "Star Marshal", "score": 12500, "reward": "+1 life and shield repair", "extra_lives": 1, "repair_shields": True},
+    {"name": "Galactic Guardian", "score": 18000, "reward": "+3 extra lives", "extra_lives": 3},
 )
 MUSIC_TRACKS = (
     {
@@ -339,6 +351,8 @@ class Player:
             ((24, 0), (31, 12), (47, 22), (43, 31), (5, 31), (1, 22), (17, 12)),
             ((24, 0), (29, 12), (47, 17), (39, 31), (9, 31), (1, 17), (19, 12)),
             ((24, 0), (32, 14), (47, 28), (39, 28), (33, 31), (15, 31), (9, 28), (1, 28), (16, 14)),
+            ((24, 0), (28, 12), (45, 18), (47, 29), (31, 27), (24, 31), (17, 27), (1, 29), (3, 18), (20, 12)),
+            ((24, 0), (34, 15), (47, 20), (36, 22), (43, 31), (27, 28), (24, 31), (21, 28), (5, 31), (12, 22), (1, 20), (14, 15)),
         )
         pygame.draw.polygon(surface, color, tuple((x + px, y + py) for px, py in shapes[style]))
         pygame.draw.rect(surface, WHITE, (x + 22, y + 12, 4, 8))
@@ -448,6 +462,8 @@ class GameState:
         self.catalog_tab = CATALOG_TABS[0]
         self.achievement_popup = None
         self.achievement_popup_timer = 0.0
+        self.exit_confirmation = False
+        self.exit_was_paused = False
         self.audio_settings = {
             "track": 0,
             "master_volume": 0.72,
@@ -675,6 +691,9 @@ class GameState:
                 self.achievements.add(name)
                 self.achievement_popup = name
                 self.achievement_popup_timer = 4.0
+                self.lives += achievement.get("extra_lives", 0)
+                if achievement.get("repair_shields"):
+                    self.shields = [Shield(x) for x in (90, 285, 480, 675)]
 
 
 def draw_button(surface, rect, label, font, active=False):
@@ -713,11 +732,11 @@ def create_catalog_layout():
             for index in range(len(items))
         ]
     cards["Achievements"] = [
-        pygame.Rect(40 + (index % 2) * 365, 176 + (index // 2) * 80, 350, 68)
+        pygame.Rect(40 + (index % 2) * 365, 176 + (index // 2) * 76, 350, 60)
         for index in range(len(ACHIEVEMENTS))
     ]
     return {
-        "panel": pygame.Rect(20, 68, 760, 484),
+        "panel": pygame.Rect(20, 68, 760, 520),
         "close": pygame.Rect(736, 80, 34, 34),
         "tabs": tabs,
         "cards": cards,
@@ -737,6 +756,14 @@ def create_settings_layout():
         "master_slider": pygame.Rect(144, 347, 480, 8),
         "music_slider": pygame.Rect(144, 414, 480, 8),
         "music_toggle": pygame.Rect(590, 458, 78, 34),
+    }
+
+
+def create_exit_confirmation_layout():
+    return {
+        "panel": pygame.Rect(125, 185, 550, 230),
+        "yes": pygame.Rect(270, 335, 110, 44),
+        "no": pygame.Rect(420, 335, 110, 44),
     }
 
 
@@ -857,7 +884,7 @@ def draw_catalog(surface, state, fonts, layout):
 
         item_name = catalog_font.render(item["name"], True, WHITE if unlocked else (147, 158, 172))
         if state.catalog_tab == "Achievements":
-            detail_text = f"Reach {item['score']:,} pts"
+            detail_text = f"Reach {item['score']:,} pts | {item['reward']}"
             status_text = "EARNED" if unlocked else "LOCKED"
         else:
             if item["score"] == 0:
@@ -872,12 +899,18 @@ def draw_catalog(surface, state, fonts, layout):
 
         detail = catalog_font.render(detail_text, True, (164, 182, 199))
         status = catalog_font.render(status_text, True, edge_color)
-        surface.blit(item_name, (rect.x + 12, rect.y + 9))
-        surface.blit(detail, (rect.x + 12, rect.y + 38))
-        surface.blit(status, status.get_rect(midright=(rect.right - 12, rect.centery)))
+        if state.catalog_tab == "Achievements":
+            surface.blit(item_name, (rect.x + 12, rect.y + 6))
+            surface.blit(detail, (rect.x + 12, rect.y + 35))
+            surface.blit(status, status.get_rect(midright=(rect.right - 12, rect.y + 18)))
+        else:
+            surface.blit(item_name, (rect.x + 12, rect.y + 9))
+            surface.blit(detail, (rect.x + 12, rect.y + 38))
+            surface.blit(status, status.get_rect(midright=(rect.right - 12, rect.centery)))
 
     footer = catalog_font.render("Unlocked upgrades are permanent for this session. Click an unlocked item to equip it.", True, (164, 182, 199))
-    surface.blit(footer, footer.get_rect(center=(SCREEN_WIDTH // 2, 528)))
+    footer_y = 566 if state.catalog_tab == "Achievements" else 528
+    surface.blit(footer, footer.get_rect(center=(SCREEN_WIDTH // 2, footer_y)))
 
 
 def draw_game(surface, state, fonts, buttons, catalog_layout, settings_layout, stars, mouse_pos, mouse_down, ticks):
@@ -963,6 +996,22 @@ def draw_game(surface, state, fonts, buttons, catalog_layout, settings_layout, s
         surface.blit(popup_title, popup_title.get_rect(center=(popup_rect.centerx, popup_rect.y + 16)))
         surface.blit(popup_name, popup_name.get_rect(center=(popup_rect.centerx, popup_rect.y + 38)))
 
+    if state.exit_confirmation:
+        exit_layout = create_exit_confirmation_layout()
+        overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
+        overlay.fill((0, 0, 0, 220))
+        surface.blit(overlay, (0, 0))
+        pygame.draw.rect(surface, (12, 21, 36), exit_layout["panel"], border_radius=8)
+        pygame.draw.rect(surface, RED, exit_layout["panel"], width=1, border_radius=8)
+        question = font.render("Are you sure you want to exit?", True, WHITE)
+        warning_one = catalog_font.render("You'll lose all of your achievements", True, YELLOW)
+        warning_two = catalog_font.render("and awards.", True, YELLOW)
+        surface.blit(question, question.get_rect(center=(SCREEN_WIDTH // 2, 230)))
+        surface.blit(warning_one, warning_one.get_rect(center=(SCREEN_WIDTH // 2, 276)))
+        surface.blit(warning_two, warning_two.get_rect(center=(SCREEN_WIDTH // 2, 301)))
+        draw_button(surface, exit_layout["yes"], "YES", button_font)
+        draw_button(surface, exit_layout["no"], "NO", button_font, True)
+
 
 def handle_catalog_click(state, position, layout):
     if layout["close"].collidepoint(position):
@@ -1041,6 +1090,7 @@ def main():
     buttons = (left_button, fire_button, right_button, restart_button, pause_button, catalog_button, settings_button)
     catalog_layout = create_catalog_layout()
     settings_layout = create_settings_layout()
+    exit_layout = create_exit_confirmation_layout()
     rng = random.Random(12)
     stars = [
         (rng.randrange(SCREEN_WIDTH), rng.randrange(SCREEN_HEIGHT), rng.choice((1, 1, 2)), rng.randrange(100))
@@ -1053,9 +1103,18 @@ def main():
         delta_time = min(clock.tick(FPS) / 1000, 0.05)
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                running = False
+                if not state.exit_confirmation:
+                    state.exit_was_paused = state.paused
+                    state.paused = True
+                state.exit_confirmation = True
             elif event.type == pygame.KEYDOWN:
-                if state.settings_open and event.key in (pygame.K_ESCAPE, pygame.K_x):
+                if state.exit_confirmation:
+                    if event.key == pygame.K_y:
+                        running = False
+                    elif event.key in (pygame.K_n, pygame.K_ESCAPE):
+                        state.exit_confirmation = False
+                        state.paused = state.exit_was_paused
+                elif state.settings_open and event.key in (pygame.K_ESCAPE, pygame.K_x):
                     state.close_settings()
                     if audio_manager is not None:
                         audio_manager.stop_preview()
@@ -1071,7 +1130,13 @@ def main():
                     elif event.key == pygame.K_g and not state.catalog_open and not state.settings_open:
                         state.open_settings()
             elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                if state.settings_open:
+                if state.exit_confirmation:
+                    if exit_layout["yes"].collidepoint(event.pos):
+                        running = False
+                    elif exit_layout["no"].collidepoint(event.pos):
+                        state.exit_confirmation = False
+                        state.paused = state.exit_was_paused
+                elif state.settings_open:
                     settings_action = handle_settings_click(state, event.pos, settings_layout)
                     if audio_manager is not None and settings_action is not None:
                         if settings_action[0] == "preview":
@@ -1090,6 +1155,9 @@ def main():
                     elif settings_button.collidepoint(event.pos):
                         state.open_settings()
 
+        if not running:
+            break
+
         if state.settings_open and pygame.mouse.get_pressed()[0]:
             mouse_x, mouse_y = pygame.mouse.get_pos()
             if settings_layout["master_slider"].inflate(0, 24).collidepoint(mouse_x, mouse_y):
@@ -1100,7 +1168,13 @@ def main():
         keys = pygame.key.get_pressed()
         mouse_down = pygame.mouse.get_pressed()[0]
         mouse_pos = pygame.mouse.get_pos()
-        input_blocked = state.settings_open or state.catalog_open or state.paused or state.resume_countdown > 0
+        input_blocked = (
+            state.exit_confirmation
+            or state.settings_open
+            or state.catalog_open
+            or state.paused
+            or state.resume_countdown > 0
+        )
         move_left = not input_blocked and (
             keys[pygame.K_LEFT] or keys[pygame.K_a] or (mouse_down and left_button.collidepoint(mouse_pos))
         )
@@ -1119,6 +1193,7 @@ def main():
             or state.paused
             or state.catalog_open
             or state.settings_open
+            or state.exit_confirmation
             or state.resume_countdown > 0
         )
         if audio_manager is not None:
