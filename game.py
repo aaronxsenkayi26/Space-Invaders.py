@@ -105,15 +105,15 @@ UPGRADE_CATALOGS = {
     ),
 }
 ACHIEVEMENTS = (
-    {"name": "First Contact", "score": 250, "reward": "+1 extra life", "extra_lives": 1},
-    {"name": "Squadron Pilot", "score": 500, "reward": "Repair all shields", "repair_shields": True},
-    {"name": "The Wide Receiver", "score": 1500, "reward": "+1 extra life", "extra_lives": 1},
-    {"name": "Ace of the Fleet", "score": 3000, "reward": "+1 life and shield repair", "extra_lives": 1, "repair_shields": True},
-    {"name": "Alien Nemesis", "score": 5000, "reward": "+2 extra lives", "extra_lives": 2},
-    {"name": "Shield Guardian", "score": 6500, "reward": "Repair all shields", "repair_shields": True},
-    {"name": "Vanguard Ace", "score": 9000, "reward": "+2 extra lives", "extra_lives": 2},
-    {"name": "Star Marshal", "score": 12500, "reward": "+1 life and shield repair", "extra_lives": 1, "repair_shields": True},
-    {"name": "Galactic Guardian", "score": 18000, "reward": "+3 extra lives", "extra_lives": 3},
+    {"name": "First Contact", "score": 250},
+    {"name": "Squadron Pilot", "score": 500},
+    {"name": "The Wide Receiver", "score": 1500},
+    {"name": "Ace of the Fleet", "score": 3000},
+    {"name": "Alien Nemesis", "score": 5000},
+    {"name": "Shield Guardian", "score": 6500},
+    {"name": "Vanguard Ace", "score": 9000},
+    {"name": "Star Marshal", "score": 12500},
+    {"name": "Galactic Guardian", "score": 18000},
 )
 MUSIC_TRACKS = (
     {
@@ -691,9 +691,6 @@ class GameState:
                 self.achievements.add(name)
                 self.achievement_popup = name
                 self.achievement_popup_timer = 4.0
-                self.lives += achievement.get("extra_lives", 0)
-                if achievement.get("repair_shields"):
-                    self.shields = [Shield(x) for x in (90, 285, 480, 675)]
 
 
 def draw_button(surface, rect, label, font, active=False):
@@ -884,7 +881,7 @@ def draw_catalog(surface, state, fonts, layout):
 
         item_name = catalog_font.render(item["name"], True, WHITE if unlocked else (147, 158, 172))
         if state.catalog_tab == "Achievements":
-            detail_text = f"Reach {item['score']:,} pts | {item['reward']}"
+            detail_text = f"Reach {item['score']:,} pts"
             status_text = "EARNED" if unlocked else "LOCKED"
         else:
             if item["score"] == 0:
