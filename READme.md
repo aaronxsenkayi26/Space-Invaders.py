@@ -46,4 +46,4 @@ File Explorer or in Desktop:
 
 > Double-click the file named run_game.bat & wait for Command Prompt to finish loading everything for you. If an error message pops up, follow its instructions, and if it tells you to download pygame, either run this in Command Prompt / Powershell: py -3.12 -m pip install pygame | or you can run the file amd64.exe file inside of the Backup Python 3.12.10 folder.
 
-# 1,170 lines of code!
+# 210,479 lines of code!
