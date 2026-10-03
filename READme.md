@@ -14,13 +14,13 @@
 
 > Laser, achievement, game-over, and countdown sounds play during their matching game events. Settings pause gameplay and use the same 3-second resume countdown when closed.
 
-> Click CATALOG or press C to open the Jets, Blasters, Fire Rate, Bullet Amount, and Achievements catalogs. Reach the listed score thresholds to unlock gear, then click an unlocked item to equip it.
+> Click CATALOG or press C to open the Jets, Blasters, Fire Rate, Bullet Amount, Bullet Colors, and Achievements catalogs. Reach the listed score thresholds to unlock gear, then click an unlocked item to equip it. Bullet Colors are all available from the start.
 
 > Achievements unlock automatically when you reach their score goals, including "The Wide Receiver - Reach 1500 pts".
 
 > Opening a catalog pauses the game. Click X or press Escape to close it; a 3-second countdown plays before the game resumes.
 
-> Clear each alien wave to start the next, faster wave. Aliens flap their limbs as the formation marches. Top-row aliens are worth 30 points, second-row aliens 20, and the other rows 10.
+> Clear each alien wave to start the next, harder wave. The fleet moves and fires faster each wave, and an extra row joins every two waves up to seven rows. Aliens flap their limbs as the formation marches. Top-row aliens are worth 30 points, second-row aliens 20, and the other rows 10.
 
 > You have three lives. Alien shots cost a life, and shields can absorb shots until they are worn away. If the invaders reach the bottom, the game ends.
 

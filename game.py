@@ -62,12 +62,13 @@ ALIEN_FRAMES = (
     ),
 )
 
-CATALOG_TABS = ("Jets", "Blasters", "Fire Rate", "Bullet Amount", "Achievements")
+CATALOG_TABS = ("Jets", "Blasters", "Fire Rate", "Bullet Amount", "Bullet Colors", "Achievements")
 CATALOG_TAB_LABELS = {
     "Jets": "JETS",
     "Blasters": "BLASTERS",
     "Fire Rate": "FIRE RATE",
     "Bullet Amount": "BULLET AMOUNT",
+    "Bullet Colors": "BULLET COLORS",
     "Achievements": "ACHIEVEMENTS",
 }
 UPGRADE_CATALOGS = {
@@ -102,6 +103,15 @@ UPGRADE_CATALOGS = {
         {"id": "fan", "name": "Fan Volley", "score": 4000, "amount": 5},
         {"id": "thunder", "name": "Thunder Volley", "score": 6000, "amount": 7},
         {"id": "starfall", "name": "Starfall Volley", "score": 12000, "amount": 9},
+    ),
+    "Bullet Colors": (
+        {"id": "blaster-match", "name": "Blaster Match", "score": 0, "color": None},
+        {"id": "arc-green", "name": "Arc Green", "score": 0, "color": GREEN},
+        {"id": "ice-blue", "name": "Ice Blue", "score": 0, "color": CYAN},
+        {"id": "solar-gold", "name": "Solar Gold", "score": 0, "color": YELLOW},
+        {"id": "plasma-violet", "name": "Plasma Violet", "score": 0, "color": (180, 120, 255)},
+        {"id": "nova-pink", "name": "Nova Pink", "score": 0, "color": (255, 105, 220)},
+        {"id": "reactor-orange", "name": "Reactor Orange", "score": 0, "color": ORANGE},
     ),
 }
 ACHIEVEMENTS = (
@@ -501,19 +511,20 @@ class GameState:
         self.shots_fired = 0
         self.player = Player()
         self.high_score = getattr(self, "high_score", 0)
-        self.starting_alien_count = ALIEN_ROWS * ALIEN_COLUMNS
         self._start_wave()
 
     def _start_wave(self):
+        alien_rows = min(ALIEN_ROWS + (self.wave - 1) // 2, 7)
         self.aliens = [
             Alien(
                 ALIEN_START_X + column * (ALIEN_WIDTH + ALIEN_GAP_X),
                 ALIEN_START_Y + row * ALIEN_GAP_Y,
                 row,
             )
-            for row in range(ALIEN_ROWS)
+            for row in range(alien_rows)
             for column in range(ALIEN_COLUMNS)
         ]
+        self.starting_alien_count = len(self.aliens)
         self.player_shots = []
         self.alien_shots = []
         self.shields = [Shield(x) for x in (90, 285, 480, 675)]
@@ -543,13 +554,15 @@ class GameState:
             self.shots_fired += 1
             bullet_count = self.equipped_item("Bullet Amount")["amount"]
             blaster_color = self.equipped_item("Blasters")["color"]
+            selected_color = self.equipped_item("Bullet Colors")["color"]
+            bullet_color = selected_color if selected_color is not None else blaster_color
             for bullet_index in range(bullet_count):
                 offset = (bullet_index - (bullet_count - 1) / 2) * 10
                 self.player_shots.append(Shot(
                     self.player.rect.centerx + offset,
                     self.player.rect.top - 14,
                     -580,
-                    blaster_color,
+                    bullet_color,
                 ))
             self.fire_cooldown = self.equipped_item("Fire Rate")["cooldown"]
 
@@ -599,8 +612,8 @@ class GameState:
         if not self.aliens:
             return
         remaining = len(self.aliens) / self.starting_alien_count
-        interval = max(0.085, 0.76 - 0.62 * (1 - remaining))
-        interval /= 1 + (self.wave - 1) * 0.12
+        interval = max(0.065, 0.76 - 0.62 * (1 - remaining))
+        interval /= 1 + (self.wave - 1) * 0.18
         self.fleet_step_timer += delta_time
         while self.fleet_step_timer >= interval:
             self.fleet_step_timer -= interval
@@ -639,11 +652,11 @@ class GameState:
         self.alien_shots.append(Shot(
             shooter.rect.centerx,
             shooter.rect.bottom,
-            220 + self.wave * 18,
+            220 + self.wave * 24,
             ORANGE,
             zigzag=random.random() < 0.35,
         ))
-        self.enemy_fire_timer = max(0.34, 1.3 - self.wave * 0.06)
+        self.enemy_fire_timer = max(0.22, 1.3 - self.wave * 0.08)
 
     def _check_collisions(self):
         if self.player.invulnerability <= 0:
@@ -755,7 +768,7 @@ def draw_pause_button(surface, rect, paused, icon_font, active=False):
 
 def create_catalog_layout():
     tabs = {
-        name: pygame.Rect(34 + index * 146, 126, 140, 36)
+        name: pygame.Rect(34 + index * 122, 126, 118, 36)
         for index, name in enumerate(CATALOG_TABS)
     }
     cards = {}
