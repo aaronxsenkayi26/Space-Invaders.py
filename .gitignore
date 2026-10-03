@@ -1,0 +1,7 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.vscode/settings.json
+Backup Python 3.12.10/*.exe
+Backup Python 3.12.10/*.zip
