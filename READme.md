@@ -6,7 +6,7 @@
 
 > Press P or click the pause icon to pause. Press P or click the play icon to resume.
 
-> Click the gear button or press G to open audio settings. Choose a song to preview it, then click SAVE to apply it. Adjust main and music volume independently, or switch music off and on.
+> Click the gear button or press G to open settings. Choose a background map, preview a music track, adjust the main and music volume, and set music on or off. Click SAVE ALL to apply the selected options together.
 
 > Laser, achievement, game-over, and countdown sounds play during their matching game events. Settings pause gameplay and use the same 3-second resume countdown when closed.
 
@@ -20,7 +20,7 @@
 
 > Opening a catalog pauses the game. Click X or press Escape to close it; a 3-second countdown plays before the game resumes.
 
-> Clear each alien wave to start the next, faster wave. Top-row aliens are worth 30 points, second-row aliens 20, and the other rows 10.
+> Clear each alien wave to start the next, faster wave. Aliens flap their limbs as the formation marches. Top-row aliens are worth 30 points, second-row aliens 20, and the other rows 10.
 
 > You have three lives. Alien shots cost a life, and shields can absorb shots until they are worn away. If the invaders reach the bottom, the game ends.
 

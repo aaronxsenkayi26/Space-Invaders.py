@@ -115,6 +115,12 @@ ACHIEVEMENTS = (
     {"name": "Star Marshal", "score": 12500},
     {"name": "Galactic Guardian", "score": 18000},
 )
+BACKGROUND_MAPS = (
+    {"name": "Deep Space", "base": (5, 8, 18), "stars": (145, 177, 215), "accent": (40, 70, 105)},
+    {"name": "Mars Orbit", "base": (15, 8, 13), "stars": (255, 180, 132), "accent": (118, 57, 46)},
+    {"name": "Nebula Drift", "base": (5, 13, 23), "stars": (155, 224, 255), "accent": (22, 72, 91)},
+    {"name": "Earthrise", "base": (4, 12, 23), "stars": (145, 235, 220), "accent": (30, 105, 125)},
+)
 MUSIC_TRACKS = (
     {
         "name": "Vector Assault",
@@ -258,18 +264,32 @@ class AudioManager:
         self.music_channel = self.music_sounds[self.track_index].play(loops=-1)
         self._sync_music_channel()
 
-    def preview_track(self, track_index):
+    def preview_track(self, track_index, settings=None):
         self.stop_preview()
-        if not self.music_enabled:
+        settings = settings or {
+            "music_enabled": self.music_enabled,
+            "master_volume": self.master_volume,
+            "music_volume": self.music_volume,
+        }
+        if not settings["music_enabled"]:
             return
         self.preview_channel = self.music_sounds[track_index].play()
         if self.preview_channel is not None:
-            self.preview_channel.set_volume(self.master_volume * self.music_volume)
+            self.preview_channel.set_volume(settings["master_volume"] * settings["music_volume"])
 
     def stop_preview(self):
         if self.preview_channel is not None:
             self.preview_channel.stop()
             self.preview_channel = None
+
+    def sync_preview_settings(self, settings):
+        if not settings["music_enabled"]:
+            self.stop_preview()
+        elif self.preview_channel is not None:
+            if self.preview_channel.get_busy():
+                self.preview_channel.set_volume(settings["master_volume"] * settings["music_volume"])
+            else:
+                self.preview_channel = None
 
     def _sync_music_channel(self):
         if self.music_channel is None:
@@ -295,14 +315,6 @@ class AudioManager:
         if self.music_enabled and self.music_channel is None:
             self._start_music()
         self._sync_music_channel()
-
-        if not self.music_enabled:
-            self.stop_preview()
-        elif self.preview_channel is not None:
-            if self.preview_channel.get_busy():
-                self.preview_channel.set_volume(self.master_volume * self.music_volume)
-            else:
-                self.preview_channel = None
 
         active_channels = []
         for channel, effect_volume in self.effect_channels:
@@ -365,15 +377,15 @@ class Alien:
         self.y = float(y)
         self.row = row
         self.points = 30 if row == 0 else 20 if row == 1 else 10
+        self.animation_frame = 0
 
     @property
     def rect(self):
         return pygame.Rect(round(self.x), round(self.y), ALIEN_WIDTH, ALIEN_HEIGHT)
 
-    def draw(self, surface, ticks):
+    def draw(self, surface):
         sprite_type = min(self.row, 2)
-        frame = (ticks // 360) % 2
-        pattern = ALIEN_FRAMES[sprite_type][frame]
+        pattern = ALIEN_FRAMES[sprite_type][self.animation_frame]
         color = ALIEN_COLORS[sprite_type]
         cell_width = ALIEN_WIDTH // 8
         cell_height = ALIEN_HEIGHT // 8
@@ -470,6 +482,9 @@ class GameState:
             "music_volume": 0.5,
             "music_enabled": True,
         }
+        self.background_map = 0
+        self.settings_draft = None
+        self.map_dropdown_open = False
         self.restart()
 
     def restart(self):
@@ -600,6 +615,9 @@ class GameState:
                 for alien in self.aliens:
                     alien.x += step
 
+            for alien in self.aliens:
+                alien.animation_frame ^= 1
+
             if max(alien.rect.bottom for alien in self.aliens) >= INVASION_LINE:
                 self.game_over = True
                 self.lives = 0
@@ -672,15 +690,33 @@ class GameState:
             return False
         self.settings_open = True
         self.settings_dropdown_open = False
+        self.map_dropdown_open = False
         self.preview_track = None
+        self.settings_draft = {
+            **self.audio_settings,
+            "background_map": self.background_map,
+        }
         self.paused = True
+        return True
+
+    def save_settings(self):
+        if not self.settings_open or self.settings_draft is None:
+            return False
+        self.audio_settings = {
+            key: self.settings_draft[key]
+            for key in ("track", "master_volume", "music_volume", "music_enabled")
+        }
+        self.background_map = self.settings_draft["background_map"]
+        self.close_settings()
         return True
 
     def close_settings(self):
         if self.settings_open:
             self.settings_open = False
             self.settings_dropdown_open = False
+            self.map_dropdown_open = False
             self.preview_track = None
+            self.settings_draft = None
             self.paused = True
             self.resume_countdown = 3.0
 
@@ -742,17 +778,22 @@ def create_catalog_layout():
 
 def create_settings_layout():
     return {
-        "panel": pygame.Rect(100, 80, 600, 440),
-        "close": pygame.Rect(652, 94, 34, 34),
-        "track": pygame.Rect(132, 168, 380, 42),
-        "save_track": pygame.Rect(522, 168, 146, 42),
+        "panel": pygame.Rect(100, 45, 600, 510),
+        "close": pygame.Rect(652, 59, 34, 34),
+        "track": pygame.Rect(132, 130, 536, 36),
         "track_options": [
-            pygame.Rect(132, 210 + index * 34, 536, 34)
+            pygame.Rect(132, 166 + index * 30, 536, 30)
             for index in range(len(MUSIC_TRACKS))
         ],
-        "master_slider": pygame.Rect(144, 347, 480, 8),
-        "music_slider": pygame.Rect(144, 414, 480, 8),
-        "music_toggle": pygame.Rect(590, 458, 78, 34),
+        "map": pygame.Rect(132, 221, 536, 36),
+        "map_options": [
+            pygame.Rect(132, 257 + index * 30, 536, 30)
+            for index in range(len(BACKGROUND_MAPS))
+        ],
+        "master_slider": pygame.Rect(144, 319, 480, 8),
+        "music_slider": pygame.Rect(144, 383, 480, 8),
+        "music_toggle": pygame.Rect(590, 432, 78, 34),
+        "save": pygame.Rect(335, 488, 130, 42),
     }
 
 
@@ -775,8 +816,36 @@ def draw_volume_slider(surface, rect, value):
     pygame.draw.circle(surface, CYAN, (knob_x, center_y), 5)
 
 
+def draw_background(surface, map_index, stars, ticks):
+    background = BACKGROUND_MAPS[map_index]
+    surface.fill(background["base"])
+    accent = background["accent"]
+
+    if map_index == 1:
+        pygame.draw.circle(surface, accent, (684, 178), 78)
+        pygame.draw.circle(surface, (163, 83, 60), (684, 178), 78, 2)
+        pygame.draw.ellipse(surface, (184, 99, 72), pygame.Rect(560, 140, 250, 78), 2)
+        for offset in (0, 16, 32):
+            pygame.draw.arc(surface, (92, 48, 41), pygame.Rect(625, 130 + offset, 118, 24), 0.2, 2.9, 2)
+    elif map_index == 2:
+        pygame.draw.lines(surface, accent, False, ((0, 214), (145, 174), (300, 198), (458, 151), (640, 181), (800, 137)), 18)
+        pygame.draw.lines(surface, (14, 43, 63), False, ((0, 250), (160, 208), (330, 229), (520, 186), (690, 213), (800, 180)), 10)
+    elif map_index == 3:
+        pygame.draw.circle(surface, accent, (750, 365), 176)
+        pygame.draw.circle(surface, (67, 164, 179), (750, 365), 176, 3)
+        pygame.draw.arc(surface, (145, 235, 220), pygame.Rect(574, 189, 352, 352), 1.1, 2.8, 4)
+        pygame.draw.arc(surface, (35, 115, 147), pygame.Rect(603, 218, 294, 294), 1.15, 2.75, 3)
+
+    for x, y, radius, phase in stars:
+        brightness = 100 + (ticks // 180 + phase) % 100
+        tint = background["stars"]
+        color = tuple(channel * brightness // 200 for channel in tint)
+        pygame.draw.circle(surface, color, (x, y), radius)
+
+
 def draw_settings(surface, state, fonts, layout):
     font, button_font, catalog_font = fonts
+    draft = state.settings_draft or state.audio_settings
     dim = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
     dim.fill((0, 0, 0, 205))
     surface.blit(dim, (0, 0))
@@ -786,22 +855,14 @@ def draw_settings(surface, state, fonts, layout):
     surface.blit(title, (132, 99))
     draw_button(surface, layout["close"], "X", button_font)
 
-    track_label = catalog_font.render("MUSIC TRACK", True, CYAN)
-    surface.blit(track_label, (138, 145))
+    track_heading = catalog_font.render("MUSIC TRACK", True, CYAN)
+    surface.blit(track_heading, (138, 108))
     selected_track = state.preview_track
     if selected_track is None:
-        selected_track = state.audio_settings["track"]
+        selected_track = draft["track"]
     track_name = MUSIC_TRACKS[selected_track]["name"]
     track_label = f"PREVIEW: {track_name}" if state.preview_track is not None else track_name
     draw_button(surface, layout["track"], track_label, button_font)
-    save_label = "SAVE" if state.preview_track is not None else "SAVED"
-    draw_button(
-        surface,
-        layout["save_track"],
-        save_label,
-        button_font,
-        state.preview_track is not None,
-    )
     arrow_x = layout["track"].right - 22
     pygame.draw.polygon(surface, WHITE, (
         (arrow_x - 6, layout["track"].centery - 3),
@@ -809,33 +870,46 @@ def draw_settings(surface, state, fonts, layout):
         (arrow_x, layout["track"].centery + 4),
     ))
 
-    master_percent = round(state.audio_settings["master_volume"] * 100)
-    master_label = catalog_font.render(f"MAIN VOLUME  {master_percent}%", True, WHITE)
-    surface.blit(master_label, (138, 312))
-    draw_volume_slider(surface, layout["master_slider"], state.audio_settings["master_volume"])
+    map_heading = catalog_font.render("BACKGROUND MAP", True, CYAN)
+    surface.blit(map_heading, (138, 199))
+    map_label = BACKGROUND_MAPS[draft["background_map"]]["name"]
+    draw_button(surface, layout["map"], map_label, button_font)
+    map_arrow_x = layout["map"].right - 22
+    pygame.draw.polygon(surface, WHITE, (
+        (map_arrow_x - 6, layout["map"].centery - 3),
+        (map_arrow_x + 6, layout["map"].centery - 3),
+        (map_arrow_x, layout["map"].centery + 4),
+    ))
 
-    music_percent = round(state.audio_settings["music_volume"] * 100)
+    master_percent = round(draft["master_volume"] * 100)
+    master_label = catalog_font.render(f"MAIN VOLUME  {master_percent}%", True, WHITE)
+    surface.blit(master_label, (138, 286))
+    draw_volume_slider(surface, layout["master_slider"], draft["master_volume"])
+
+    music_percent = round(draft["music_volume"] * 100)
     music_label = catalog_font.render(f"MUSIC VOLUME  {music_percent}%", True, WHITE)
-    surface.blit(music_label, (138, 379))
-    draw_volume_slider(surface, layout["music_slider"], state.audio_settings["music_volume"])
+    surface.blit(music_label, (138, 350))
+    draw_volume_slider(surface, layout["music_slider"], draft["music_volume"])
 
     music_text = catalog_font.render("MUSIC", True, WHITE)
-    surface.blit(music_text, (138, 464))
-    toggle_color = BUTTON_ACTIVE if state.audio_settings["music_enabled"] else RED
+    surface.blit(music_text, (138, 442))
+    toggle_color = BUTTON_ACTIVE if draft["music_enabled"] else RED
     pygame.draw.rect(surface, toggle_color, layout["music_toggle"], border_radius=17)
-    knob_x = layout["music_toggle"].right - 17 if state.audio_settings["music_enabled"] else layout["music_toggle"].left + 17
+    knob_x = layout["music_toggle"].right - 17 if draft["music_enabled"] else layout["music_toggle"].left + 17
     pygame.draw.circle(surface, WHITE, (knob_x, layout["music_toggle"].centery), 12)
-    toggle_label = catalog_font.render("ON" if state.audio_settings["music_enabled"] else "OFF", True, WHITE)
-    label_x = layout["music_toggle"].left + 7 if state.audio_settings["music_enabled"] else layout["music_toggle"].left + 38
+    toggle_label = catalog_font.render("ON" if draft["music_enabled"] else "OFF", True, WHITE)
+    label_x = layout["music_toggle"].left + 7 if draft["music_enabled"] else layout["music_toggle"].left + 38
     surface.blit(toggle_label, (label_x, layout["music_toggle"].y + 10))
+
+    draw_button(surface, layout["save"], "SAVE ALL", button_font, True)
 
     if state.settings_dropdown_open:
         for index, rect in enumerate(layout["track_options"]):
-            selected_track = state.preview_track
-            if selected_track is None:
-                selected_track = state.audio_settings["track"]
-            selected = index == selected_track
+            selected = index == draft["track"]
             draw_button(surface, rect, MUSIC_TRACKS[index]["name"], catalog_font, selected)
+    if state.map_dropdown_open:
+        for index, rect in enumerate(layout["map_options"]):
+            draw_button(surface, rect, BACKGROUND_MAPS[index]["name"], catalog_font, index == draft["background_map"])
 
 
 def draw_catalog(surface, state, fonts, layout):
@@ -911,10 +985,10 @@ def draw_catalog(surface, state, fonts, layout):
 
 
 def draw_game(surface, state, fonts, buttons, catalog_layout, settings_layout, stars, mouse_pos, mouse_down, ticks):
-    surface.fill(BLACK)
-    for x, y, radius, phase in stars:
-        brightness = 100 + (ticks // 180 + phase) % 100
-        pygame.draw.circle(surface, (brightness, brightness, min(255, brightness + 30)), (x, y), radius)
+    map_index = state.background_map
+    if state.settings_open and state.settings_draft is not None:
+        map_index = state.settings_draft["background_map"]
+    draw_background(surface, map_index, stars, ticks)
 
     pygame.draw.line(surface, (48, 62, 82), (0, 58), (SCREEN_WIDTH, 58), 1)
     font, button_font, pause_icon_font, catalog_font, tab_font = fonts
@@ -945,7 +1019,7 @@ def draw_game(surface, state, fonts, buttons, catalog_layout, settings_layout, s
     for shield in state.shields:
         shield.draw(surface)
     for alien in state.aliens:
-        alien.draw(surface, ticks)
+        alien.draw(surface)
     for shot in state.player_shots + state.alien_shots:
         shot.draw(surface)
     state.player.draw(surface, ticks, state.equipped_item("Jets"))
@@ -1040,23 +1114,35 @@ def handle_settings_click(state, position, layout):
     if state.settings_dropdown_open:
         for index, rect in enumerate(layout["track_options"]):
             if rect.collidepoint(position):
+                state.settings_draft["track"] = index
                 state.preview_track = index
                 state.settings_dropdown_open = False
                 return "preview", index
         state.settings_dropdown_open = False
 
+    if state.map_dropdown_open:
+        for index, rect in enumerate(layout["map_options"]):
+            if rect.collidepoint(position):
+                state.settings_draft["background_map"] = index
+                state.map_dropdown_open = False
+                return "map", index
+        state.map_dropdown_open = False
+
     if layout["track"].collidepoint(position):
         state.settings_dropdown_open = True
-    elif layout["save_track"].collidepoint(position) and state.preview_track is not None:
-        state.audio_settings["track"] = state.preview_track
-        state.preview_track = None
-        return "save", state.audio_settings["track"]
+        state.map_dropdown_open = False
+    elif layout["map"].collidepoint(position):
+        state.settings_dropdown_open = False
+        state.map_dropdown_open = True
+    elif layout["save"].collidepoint(position):
+        state.save_settings()
+        return "save", None
     elif layout["music_toggle"].collidepoint(position):
-        state.audio_settings["music_enabled"] = not state.audio_settings["music_enabled"]
+        state.settings_draft["music_enabled"] = not state.settings_draft["music_enabled"]
     elif layout["master_slider"].inflate(0, 24).collidepoint(position):
-        set_audio_slider(state.audio_settings, "master_volume", layout["master_slider"], position[0])
+        set_audio_slider(state.settings_draft, "master_volume", layout["master_slider"], position[0])
     elif layout["music_slider"].inflate(0, 24).collidepoint(position):
-        set_audio_slider(state.audio_settings, "music_volume", layout["music_slider"], position[0])
+        set_audio_slider(state.settings_draft, "music_volume", layout["music_slider"], position[0])
 
 
 def main():
@@ -1137,7 +1223,7 @@ def main():
                     settings_action = handle_settings_click(state, event.pos, settings_layout)
                     if audio_manager is not None and settings_action is not None:
                         if settings_action[0] == "preview":
-                            audio_manager.preview_track(settings_action[1])
+                            audio_manager.preview_track(settings_action[1], state.settings_draft)
                         elif settings_action[0] in ("close", "save"):
                             audio_manager.stop_preview()
                 elif state.catalog_open:
@@ -1158,9 +1244,9 @@ def main():
         if state.settings_open and pygame.mouse.get_pressed()[0]:
             mouse_x, mouse_y = pygame.mouse.get_pos()
             if settings_layout["master_slider"].inflate(0, 24).collidepoint(mouse_x, mouse_y):
-                set_audio_slider(state.audio_settings, "master_volume", settings_layout["master_slider"], mouse_x)
+                set_audio_slider(state.settings_draft, "master_volume", settings_layout["master_slider"], mouse_x)
             elif settings_layout["music_slider"].inflate(0, 24).collidepoint(mouse_x, mouse_y):
-                set_audio_slider(state.audio_settings, "music_volume", settings_layout["music_slider"], mouse_x)
+                set_audio_slider(state.settings_draft, "music_volume", settings_layout["music_slider"], mouse_x)
 
         keys = pygame.key.get_pressed()
         mouse_down = pygame.mouse.get_pressed()[0]
@@ -1195,6 +1281,8 @@ def main():
         )
         if audio_manager is not None:
             audio_manager.sync_settings(state.audio_settings, music_should_play)
+            if state.settings_open and state.settings_draft is not None:
+                audio_manager.sync_preview_settings(state.settings_draft)
             if state.shots_fired > shots_before:
                 audio_manager.play_effect("laser")
             if len(state.achievements) > achievements_before:
