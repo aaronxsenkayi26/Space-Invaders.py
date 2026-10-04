@@ -56,4 +56,8 @@ File Explorer or in Desktop:
 
 > To build browser files without starting the preview server, run: py -3.12 -m pygbag --build --PYBUILD 3.12 . The files are created in build/web.
 
+# Automatic Netlify deployment
+
+> The GitHub Actions workflow builds and deploys the browser game whenever code is pushed to main. Add NETLIFY_AUTH_TOKEN and NETLIFY_SITE_ID as repository Actions secrets under Settings > Secrets and variables > Actions before the first deployment.
+
 # 210,479 lines of code!
