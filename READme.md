@@ -56,8 +56,12 @@ File Explorer or in Desktop:
 
 > To build browser files without starting the preview server, run: py -3.12 -m pygbag --build --PYBUILD 3.12 . The files are created in build/web.
 
-# Automatic Netlify deployment
+# Automatic GitHub Pages deployment
 
-> The GitHub Actions workflow builds and deploys the browser game whenever code is pushed to main. Add NETLIFY_AUTH_TOKEN and NETLIFY_SITE_ID as repository Actions secrets under Settings > Secrets and variables > Actions before the first deployment.
+> In the GitHub repository, open Settings > Pages and set the build and deployment source to GitHub Actions.
+
+> The deploy-github-pages.yml workflow builds and deploys the browser game whenever code is pushed to main. It can also be run manually from the Actions tab.
+
+> After the first successful deployment, play at https://aaronxsenkayi26.github.io/Space-Invaders.py/.
 
 # 210,479 lines of code!
