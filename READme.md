@@ -46,7 +46,7 @@ File Explorer or in Desktop:
 
 > Double-click the file named run_game.bat & wait for Command Prompt to finish loading everything for you. If an error message pops up, follow its instructions, and if it tells you to download pygame, either run this in Command Prompt / Powershell: py -3.12 -m pip install pygame | or you can run the file amd64.exe file inside of the Backup Python 3.12.10 folder.
 
-# Browser version
+# Browser version (This part of the READme.md is to be removed soon so take the information here like a grain of sand)
 
 > Install Pygbag with Python 3.12: py -3.12 -m pip install pygbag
 
@@ -65,3 +65,4 @@ File Explorer or in Desktop:
 > After the first successful deployment, play at https://aaronxsenkayi26.github.io/Space-Invaders.py/.
 
 # 210,479 lines of code!
+and maybe even more...
